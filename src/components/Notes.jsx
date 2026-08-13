@@ -1,16 +1,12 @@
 import { useState, useEffect } from "react";
 
 function Notes() {
-  const [notes, setNotes] = useState([]);
+  const [notes, setNotes] = useState(() => {
+    const savedNotes = localStorage.getItem("notes");
+    return savedNotes ? JSON.parse(savedNotes) : [];
+  });
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
-
-  useEffect(() => {
-    const savedNotes = localStorage.getItem("notes");
-    if (savedNotes) {
-      setNotes(JSON.parse(savedNotes));
-    }
-  }, []);
 
   useEffect(() => {
     localStorage.setItem("notes", JSON.stringify(notes));

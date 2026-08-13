@@ -5,6 +5,7 @@ import heroImg from './assets/hero.png'
 import './App.css'
 import Navbar from './components/Navbar'
 import Notes from './components/Notes'
+import Tasks from './components/Tasks'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -13,6 +14,7 @@ function App() {
     <>
     <Navbar brandName="StudentHub"/>
     <Notes />
+    <Tasks />
       <section id="center">
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
