@@ -1,34 +1,58 @@
 import { useState, useEffect } from "react";
 
 function Notes() {
-  const [notes, setNotes] = useState(() => {
-    const savedNotes = localStorage.getItem("notes");
-    return savedNotes ? JSON.parse(savedNotes) : [];
-  });
+  const [notes, setNotes] = useState([]);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
+  const userId = localStorage.getItem("userId");
 
   useEffect(() => {
-    localStorage.setItem("notes", JSON.stringify(notes));
-  }, [notes]);
+    if (!userId) return;
+    fetch(`http://localhost:5000/api/notes/${userId}`)
+      .then((res) => res.json())
+      .then((data) => setNotes(data))
+      .catch((err) => console.error("Failed to fetch notes:", err));
+  }, [userId]);
 
-  function handleAddNote(e) {
+  async function handleAddNote(e) {
     e.preventDefault();
     if (title.trim() === "" || text.trim() === "") return;
 
-    const newNote = {
-      id: Date.now(),
-      title: title,
-      text: text,
-    };
+    try {
+      const response = await fetch("http://localhost:5000/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, title, text }),
+      });
 
-    setNotes([...notes, newNote]);
-    setTitle("");
-    setText("");
+      const newNote = await response.json();
+      setNotes([...notes, newNote]);
+      setTitle("");
+      setText("");
+    } catch (err) {
+      console.error("Failed to add note:", err);
+    }
   }
 
-  function handleDelete(id) {
-    setNotes(notes.filter((note) => note.id !== id));
+  async function handleDelete(id) {
+    try {
+      await fetch(`http://localhost:5000/api/notes/${id}`, {
+        method: "DELETE",
+      });
+      setNotes(notes.filter((note) => note.id !== id));
+    } catch (err) {
+      console.error("Failed to delete note:", err);
+    }
+  }
+
+  if (!userId) {
+    return (
+      <div className="container py-5">
+        <p>
+          Please <a href="/login">login</a>to view your notes.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -55,7 +79,7 @@ function Notes() {
           ></textarea>
         </div>
         <button type="submit" className="btn btn-primary">
-          Add Notes
+          Add Note
         </button>
       </form>
 

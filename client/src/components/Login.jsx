@@ -1,41 +1,42 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setError("");
 
-    setEmailError("");
-    setPasswordError("");
+    try {
+      const response = await fetch("http://localhost:5000/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    let isValid = true;
+      const data = await response.json();
 
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(email)) {
-      setEmailError("Please enter a valid email address.");
-      isValid = false;
-    }
+      if (!response.ok) {
+        setError(data.error || "Login failed");
+        return;
+      }
 
-    if (password.length < 6) {
-      setPasswordError("Password must be at least 6 characters.");
-      isValid = false;
-    }
-
-    if (isValid) {
-      alert("Login Successful.");
-      setEmail("");
-      setPassword("");
+      localStorage.setItem("userId", data.id);
+      localStorage.setItem("userName", data.name);
+      navigate("/notes");
+    } catch {
+      setError("Something went wrong. Try again.");
     }
   }
 
   return (
     <div className="container py-5" style={{ maxWidth: "400px" }}>
       <h2 className="text-center mb-4">Login</h2>
-
+      {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <label className="form-label">Email</label>
@@ -45,7 +46,6 @@ function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          {emailError && <small className="text-danger">{emailError}</small>}
         </div>
         <div className="mb-3">
           <label className="form-label">Password</label>
@@ -55,9 +55,6 @@ function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          {passwordError && (
-            <small className="text-danger">{passwordError}</small>
-          )}
         </div>
         <button type="submit" className="btn btn-primary w-100">
           Login
