@@ -1,39 +1,73 @@
 import { useState, useEffect } from "react";
 
 function Tasks() {
-  const [tasks, setTasks] = useState(() => {
-    const savedTasks = localStorage.getItem("tasks");
-    return savedTasks ? JSON.parse(savedTasks) : [];
-  });
-  const [taskInput, setTaskInput] = useState("");
+  const [tasks, setTasks] = useState([]);
+  const [taskInput, setTaskInput] = useState([]);
+  const userId = localStorage.getItem("userId");
 
   useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
+    if (!userId) return;
+    fetch(`http://localhost:5000/api/tasks/${userId}`)
+      .then((res) => res.json())
+      .then((data) => setTasks(data))
+      .catch((err) => console.error("Failed to fetch tasks:", err));
+  }, [userId]);
 
-  function handleAddTask(e) {
+  async function handleAddTask(e) {
     e.preventDefault();
     if (taskInput.trim() === "") return;
 
-    const newTask = {
-      id: Date.now(),
-      text: taskInput,
-      completed: false,
-    };
+    try {
+      const response = await fetch("http://localhost:5000/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, text: taskInput }),
+      });
 
-    setTasks([...tasks, newTask]);
-    setTaskInput("");
+      const newTask = await response.json();
+      setTasks([...tasks, newTask]);
+      setTaskInput("");
+    } catch (err) {
+      console.error("Failed to add task:", err);
+    }
   }
 
-  function handleDelete(id) {
-    setTasks(tasks.filter((task) => task.id !== id));
+  async function handleDelete(id) {
+    try {
+      await fetch(`http://localhost:5000/api/tasks/${id}`, {
+        method: "DELETE",
+      });
+      setTasks(tasks.filter((task) => task.id !== id));
+    } catch (err) {
+      console.error("Failed to delete task:", err);
+    }
   }
 
-  function handleToggleComplete(id) {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task,
-      ),
+  async function handleToggleComplete(id, currentStatus) {
+    try {
+      await fetch(`http://localhost:5000/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: !currentStatus }),
+      });
+
+      setTasks(
+        tasks.map((task) =>
+          task.id === id ? { ...task, completed: !task.completed } : task,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to update task:", err);
+    }
+  }
+
+  if (!userId) {
+    return (
+      <div className="container py-5">
+        <p>
+          Please <a href="/login">Login</a>to view your tasks.
+        </p>
+      </div>
     );
   }
 
@@ -64,8 +98,8 @@ function Tasks() {
               <input
                 className="form-check-input"
                 type="checkbox"
-                checked={task.completed}
-                onChange={() => handleToggleComplete(task.id)}
+                checked={!!task.completed}
+                onChange={() => handleToggleComplete(task.id, task.completed)}
               />
               <label
                 className={`form-check-label ${task.completed ? "text-decoration-line-through text-muted" : ""}`}

@@ -6,7 +6,7 @@ const db = require("../config/db");
 router.get("/:userId", (req, res) => {
   const { userId } = req.params;
   db.query(
-    "SELECT * FROM notes WHERE user_id = ?",
+    "SELECT * FROM tasks WHERE user_id = ?",
     [userId],
     (err, results) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -31,12 +31,14 @@ router.post("/", (req, res) => {
 // PUT - toggle complete status
 router.put("/:id", (req, res) => {
   const { id } = req.params;
-  const { completed } = req.body;
+  const { completed, user_id } = req.body;
   db.query(
-    "UPDATE tasks SET completed ? WHERE id = ?",
-    [completed, id],
-    (err) => {
+    "UPDATE tasks SET completed = ? WHERE id = ? AND user_id = ?",
+    [completed, id, user_id],
+    (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0)
+        return res.status(403).json({ error: "Not authorized" });
       res.json({ message: "Task updated" });
     },
   );
@@ -45,10 +47,17 @@ router.put("/:id", (req, res) => {
 // DELETE a task
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
-  db.query("DELETE FROM tasks WHERE id = ?", [id], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: "Task deleted" });
-  });
+  const { user_id } = req.body;
+  db.query(
+    "DELETE FROM tasks WHERE id = ? AND user_id = ?",
+    [id, user_id],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0)
+        return res.status(403).json({ error: "Not authorized" });
+      res.json({ message: "Task deleted" });
+    },
+  );
 });
 
 module.exports = router;
