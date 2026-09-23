@@ -36,9 +36,15 @@ function Notes() {
 
   async function handleDelete(id) {
     try {
-      await fetch(`http://localhost:5000/api/notes/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/notes/${id}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
       });
+      if (!response.ok) {
+        console.error("Delete failed:", await response.json());
+        return;
+      }
       setNotes(notes.filter((note) => note.id !== id));
     } catch (err) {
       console.error("Failed to delete note:", err);
